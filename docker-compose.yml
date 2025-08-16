@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=false
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+      - /tmp:/tmp  # For temporary file operations
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://backend:5050
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # JIRA MCP Server
+  mcp-jira:
+    build:
+      context: .
+      dockerfile: mcp_servers/Dockerfile
+    command: ["python", "mcp_servers/jira_mcp_server.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./mcp_servers:/app/mcp_servers
+    restart: unless-stopped
+
+  # GitHub MCP Server
+  mcp-github:
+    build:
+      context: .
+      dockerfile: mcp_servers/Dockerfile
+    command: ["python", "mcp_servers/github_mcp_server.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./mcp_servers:/app/mcp_servers
+      - /tmp:/tmp
+    restart: unless-stopped
+
+  # Maven MCP Server
+  mcp-maven:
+    build:
+      context: .
+      dockerfile: mcp_servers/Dockerfile
+    command: ["python", "mcp_servers/maven_mcp_server.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./mcp_servers:/app/mcp_servers
+      - /tmp:/tmp
+    restart: unless-stopped
+
+  # Filesystem MCP Server
+  mcp-filesystem:
+    build:
+      context: .
+      dockerfile: mcp_servers/Dockerfile
+    command: ["python", "mcp_servers/filesystem_mcp_server.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./mcp_servers:/app/mcp_servers
+      - /tmp:/tmp
+    restart: unless-stopped
+
+  # SonarQube MCP Server
+  mcp-sonar:
+    build:
+      context: .
+      dockerfile: mcp_servers/Dockerfile
+    command: ["python", "mcp_servers/sonar_mcp_server.py"]
+    env_file:
+      - .env
+    volumes:
+      - ./mcp_servers:/app/mcp_servers
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: swe-agent-network

@@ -1,0 +1,11 @@
+{
+"scripts": {
+  "dev": "concurrently \"npm:run-mcp\" \"npm:run-backend\" \"npm:run-frontend\"",
+  "run-mcp": "python3 mcp_servers/jira_mcp_server.py",
+ "run-backend": "bash -c 'cd backend && source venv/bin/activate && export FLASK_APP=app.py && export FLASK_ENV=development && flask run --host=0.0.0.0 --port=5050'",
+  "run-frontend": "cd frontend && npm run dev"
+},
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
